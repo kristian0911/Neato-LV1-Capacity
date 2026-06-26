@@ -191,6 +191,7 @@ function saveToStorage() {
     localStorage.setItem('neato_lv1_maxByHeight', JSON.stringify(maxByHeight));
     localStorage.setItem('neato_lv1_overrides', JSON.stringify(maxOverrides));
   } catch(e) {}
+  try { if (window.cloudSave) window.cloudSave(); } catch(e) {}
 }
 
 function isExcluded(loc) {
@@ -542,5 +543,98 @@ if (locations.length) {
   render();
 }
 </script>
+
+<!-- Cloud sync via Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  var SUPABASE_URL = 'https://zagipewmamecyazgarev.supabase.co';
+  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InphZ2lwZXdtYW1lY3lhemdhcmV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0OTA4MTQsImV4cCI6MjA5ODA2NjgxNH0.LbMDQHasjDSvK0db7Why8eYzkPuTzqlfLiGnpns_PFc';
+  var sb = null;
+  try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e) { console.warn('Supabase init failed', e); }
+
+  var saveTimer = null;
+  window.cloudSave = function(){
+    if(!sb) return;
+    // debounce rapid saves
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function(){ doCloudSave(); }, 600);
+  };
+
+  function doCloudSave(){
+    if(!sb || typeof locations === 'undefined') return;
+    var rows = locations.map(function(l){
+      return {
+        location: l.location,
+        quantity: l.quantity|0,
+        filled: !!l.filled,
+        reserved: !!l.reserved,
+        backstock: !!l.backstock,
+        height: l.height|0
+      };
+    });
+    sb.from('locations').upsert(rows, { onConflict: 'location' }).then(function(res){
+      if(res.error) console.warn('cloud locations save error', res.error);
+    });
+    var settingsRows = [
+      { key: 'maxByHeight', value: (typeof maxByHeight!=='undefined'? maxByHeight : {}) },
+      { key: 'overrides', value: (typeof maxOverrides!=='undefined'? maxOverrides : {}) }
+    ];
+    sb.from('settings').upsert(settingsRows, { onConflict: 'key' }).then(function(res){
+      if(res.error) console.warn('cloud settings save error', res.error);
+    });
+  }
+
+  window.cloudLoad = function(){
+    if(!sb) return;
+    Promise.all([
+      sb.from('locations').select('*'),
+      sb.from('settings').select('*')
+    ]).then(function(results){
+      var locRes = results[0], setRes = results[1];
+      if(locRes.error){ console.warn('cloud load locations error', locRes.error); return; }
+      var cloudLocs = locRes.data || [];
+      if(cloudLocs.length > 0){
+        // sort by location to keep stable order
+        cloudLocs.sort(function(a,b){ return String(a.location).localeCompare(String(b.location)); });
+        locations = cloudLocs.map(function(r){
+          return {
+            location: r.location,
+            quantity: r.quantity|0,
+            filled: !!r.filled,
+            reserved: !!r.reserved,
+            backstock: !!r.backstock,
+            height: r.height|0
+          };
+        });
+      }
+      if(setRes && !setRes.error && setRes.data){
+        setRes.data.forEach(function(row){
+          if(row.key === 'maxByHeight' && row.value) { maxByHeight = row.value; }
+          if(row.key === 'overrides' && row.value) { maxOverrides = row.value; }
+        });
+      }
+      // persist locally too and refresh UI
+      try { localStorage.setItem('neato_lv1_data', JSON.stringify(locations)); } catch(e){}
+      try { localStorage.setItem('neato_lv1_maxByHeight', JSON.stringify(maxByHeight)); } catch(e){}
+      try { localStorage.setItem('neato_lv1_overrides', JSON.stringify(maxOverrides)); } catch(e){}
+      try { if(typeof render === 'function') render(); } catch(e){}
+      try {
+        if(typeof setStatus === 'function' && cloudLocs.length>0){
+          setStatus('Synced ' + locations.length + ' locations from cloud');
+        }
+      } catch(e){}
+    }).catch(function(e){ console.warn('cloud load failed', e); });
+  };
+
+  // Pull cloud data shortly after page load (after the app's own init runs)
+  if(document.readyState === 'complete' || document.readyState === 'interactive'){
+    setTimeout(window.cloudLoad, 400);
+  } else {
+    window.addEventListener('load', function(){ setTimeout(window.cloudLoad, 400); });
+  }
+})();
+</script>
+
 </body>
 </html>
