@@ -369,7 +369,7 @@ function renderLocations() {
       <td style="font-family:monospace;font-size:12px">${r.location}</td>
       <td><span class="badge ${r.filled?'badge-filled':'badge-empty'}">${r.filled?'Filled':'Empty'}</span></td>
       <td>${r.quantity}</td>
-      <td>${(function(){var m=getMax(r,r.height);return (m!==null && m!==undefined) ? Math.max(0, m - (r.quantity||0)) : '<span style=\"color:#555\">—</span>';})()}</td>
+      <td>${(function(){var m=getMax(r.location,r.height);return (m!==null && m!==undefined) ? Math.max(0, m - (r.quantity||0)) : '<span style=\"color:#555\">—</span>';})()}</td>
       <td><span class="badge ${r.reserved?'badge-yes':'badge-no'}">${r.reserved?'Yes':'No'}</span></td>
       <td>${r.height !== null ? r.height + '"' : '<span style="color:#555">—</span>'}</td>
       <td>
