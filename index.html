@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neato LV1 — Capacity Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#e5e5e5;min-height:100vh}
+.header{background:#111;border-bottom:1px solid #222;padding:16px 24px;display:flex;align-items:center;gap:12px}
+.header h1{font-size:18px;font-weight:600;color:#fff}
+.header-icon{font-size:20px}
+.controls{background:#111;border-bottom:1px solid #222;padding:12px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.btn{padding:8px 16px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s}
+.btn-primary{background:#5865f2;color:#fff}.btn-primary:hover{background:#4752c4}
+.btn-secondary{background:#222;color:#e5e5e5;border:1px solid #333}.btn-secondary:hover{background:#2a2a2a}
+.btn-danger{background:#dc2626;color:#fff}.btn-danger:hover{background:#b91c1c}
+.status-bar{font-size:12px;color:#888;padding:4px 8px;background:#0f0f0f;border:1px solid #222;border-radius:4px;flex:1;min-width:200px}
+.kpi-row{display:flex;gap:12px;padding:16px 24px;flex-wrap:wrap}
+.kpi{background:#111;border:1px solid #222;border-radius:8px;padding:14px 18px;flex:1;min-width:140px}
+.kpi-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.kpi-value{font-size:28px;font-weight:700;color:#fff}
+.kpi-sub{font-size:11px;color:#666;margin-top:2px}
+.kpi.blue .kpi-value{color:#60a5fa}
+.kpi.green .kpi-value{color:#34d399}
+.kpi.amber .kpi-value{color:#fbbf24}
+.kpi.red .kpi-value{color:#f87171}
+.tabs{display:flex;gap:0;border-bottom:1px solid #222;padding:0 24px;background:#0d0d0d}
+.tab{padding:10px 18px;font-size:13px;font-weight:500;color:#888;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s;border:none;background:none}
+.tab.active{color:#fff;border-bottom-color:#5865f2}
+.tab:hover:not(.active){color:#ccc}
+.content{padding:20px 24px}
+.search-row{display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
+input[type=text],input[type=number],select{background:#111;border:1px solid #333;color:#e5e5e5;border-radius:6px;padding:7px 10px;font-size:13px}
+input[type=text]:focus,input[type=number]:focus,select:focus{outline:none;border-color:#5865f2}
+input[type=text]::placeholder{color:#555}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#111;color:#888;font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.05em;padding:8px 12px;text-align:left;border-bottom:1px solid #222;position:sticky;top:0;z-index:10}
+td{padding:8px 12px;border-bottom:1px solid #1a1a1a;vertical-align:middle}
+tr:hover td{background:#111}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:500}
+.badge-filled{background:#1a3a1a;color:#34d399}
+.badge-empty{background:#1a1a2e;color:#60a5fa}
+.badge-yes{background:#2a1a00;color:#fbbf24}
+.badge-no{background:#1a1a1a;color:#555}
+.bar-wrap{width:100px;height:6px;background:#222;border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle}
+.bar-fill{height:100%;border-radius:3px;transition:width .3s}
+.bar-green{background:#34d399}
+.bar-amber{background:#fbbf24}
+.bar-red{background:#f87171}
+.bar-gray{background:#444}
+.table-wrap{overflow-x:auto;max-height:60vh;overflow-y:auto}
+.aisle-group{margin-bottom:16px;background:#111;border:1px solid #222;border-radius:8px;overflow:hidden}
+.aisle-header{padding:10px 14px;background:#161616;border-bottom:1px solid #222;display:flex;align-items:center;justify-content:space-between}
+.aisle-title{font-weight:600;font-size:14px}
+.aisle-stats{font-size:12px;color:#888}
+.chart-wrap{padding:8px 0}
+.chart-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:12px}
+.chart-label{width:120px;color:#aaa;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chart-bar-outer{flex:1;height:20px;background:#1a1a1a;border-radius:4px;overflow:hidden;position:relative}
+.chart-bar-inner{height:100%;border-radius:4px;transition:width .5s}
+.chart-pct{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:600;color:#fff}
+.chart-val{width:50px;color:#666;font-size:11px}
+.capacity-section{background:#111;border:1px solid #222;border-radius:8px;padding:16px;margin-bottom:16px}
+.capacity-section h3{font-size:13px;font-weight:600;color:#aaa;margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em}
+.height-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #1a1a1a}
+.height-row:last-child{border-bottom:none}
+.height-label{flex:1;font-size:13px;color:#ccc}
+.height-count{font-size:12px;color:#666;width:80px}
+.height-input{width:100px}
+.height-input.has-value{border-color:#5865f2;background:#0f1020}
+.override-row{display:flex;gap:8px;margin-bottom:10px}
+.override-row input[type=text]{flex:1}
+.override-table{width:100%;font-size:12px}
+.override-table td{padding:6px 8px;border-bottom:1px solid #1a1a1a}
+.empty-state{text-align:center;padding:60px 20px;color:#555}
+.empty-state .icon{font-size:48px;margin-bottom:12px}
+.empty-state h2{font-size:18px;color:#888;margin-bottom:8px}
+.drop-zone{border:2px dashed #333;border-radius:8px;padding:40px;text-align:center;cursor:pointer;transition:all .2s;color:#666}
+.drop-zone:hover,.drop-zone.over{border-color:#5865f2;background:#0f1020;color:#aaa}
+.drop-zone .icon{font-size:36px;margin-bottom:10px}
+input[type=file]{display:none}
+.pagination{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.page-btn{padding:4px 10px;border-radius:4px;border:1px solid #333;background:#111;color:#aaa;cursor:pointer;font-size:12px}
+.page-btn.active{background:#5865f2;border-color:#5865f2;color:#fff}
+.page-info{font-size:12px;color:#666}
+</style>
+</head>
+<body>
+<div class="header">
+    <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">
+      <div style="display:flex;flex-direction:row;align-items:center;gap:10px;">
+        <img src="/neato-mark.png" alt="Neato Mark" style="height:28px;width:28px;object-fit:contain;" />
+        <img src="/neato-wordmark.png" alt="Neato" style="height:20px;width:auto;object-fit:contain;" />
+      </div>
+      <div style="display:flex;flex-direction:row;align-items:center;gap:12px;">
+        <span class="header-icon">📍</span>
+        <h1>Neato LV1 — Capacity Tracker</h1>
+  <div style="margin-left:auto;display:flex;gap:8px">
+    <button class="btn btn-secondary" id="exportBtn" onclick="exportCSV()" style="display:none">⬇ Export</button>
+    <button class="btn btn-primary" onclick="document.getElementById('csvInput').click()">⬆ Upload CSV</button>
+    <input type="file" id="csvInput" accept=".csv" onchange="handleFile(event)">
+  </div>
+</div>
+
+<div class="controls">
+  <div id="statusBar" class="status-bar">No data loaded — upload a CSV to get started</div>
+</div>
+
+<div id="kpiRow" class="kpi-row" style="display:none">
+  <div class="kpi">
+    <div class="kpi-label">Total Locations</div>
+    <div class="kpi-value" id="kpiTotal">0</div>
+    <div class="kpi-sub">active rack locations</div>
+  </div>
+  <div class="kpi green">
+    <div class="kpi-label">Filled</div>
+    <div class="kpi-value" id="kpiFilled">0</div>
+    <div class="kpi-sub" id="kpiFilledPct">—</div>
+  </div>
+  <div class="kpi blue">
+    <div class="kpi-label">Empty</div>
+    <div class="kpi-value" id="kpiEmpty">0</div>
+    <div class="kpi-sub" id="kpiEmptyPct">—</div>
+  </div>
+  <div class="kpi blue">
+    <div class="kpi-label">Heights Matched</div>
+    <div class="kpi-value" id="kpiHeights">0</div>
+    <div class="kpi-sub">of total locations</div>
+  </div>
+  <div class="kpi amber">
+    <div class="kpi-label">Avg % Capacity</div>
+    <div class="kpi-value" id="kpiAvgCap">—</div>
+    <div class="kpi-sub">set max units to calculate</div>
+  </div>
+</div>
+
+<div class="tabs" id="tabs" style="display:none">
+  <button class="tab active" onclick="showTab('locations')">Locations</button>
+  <button class="tab" onclick="showTab('aisle')">By Aisle</button>
+  <button class="tab" onclick="showTab('chart')">Chart</button>
+  <button class="tab" onclick="showTab('capacity')">Max Capacity</button>
+</div>
+
+<div class="content" id="mainContent">
+  <div class="empty-state" id="emptyState">
+    <div class="icon">📦</div>
+    <h2>Neato LV1 Warehouse Tracker</h2>
+    <p style="margin-bottom:20px;font-size:14px">Upload your warehouse locations CSV to get started.<br>Columns: Location, Quantity, Reserved, Backstock</p>
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('csvInput').click()"
+         ondragover="event.preventDefault();this.classList.add('over')"
+         ondragleave="this.classList.remove('over')"
+         ondrop="handleDrop(event)">
+      <div class="icon">📄</div>
+      <div style="font-size:15px;font-weight:500;margin-bottom:6px">Drop a CSV here or click to browse</div>
+      <div style="font-size:12px">Columns: Location, Quantity, Reserved, Backstock</div>
+    </div>
+  </div>
+  <div id="locationsTab" style="display:none"></div>
+  <div id="aisleTab" style="display:none"></div>
+  <div id="chartTab" style="display:none"></div>
+  <div id="capacityTab" style="display:none"></div>
+</div>
+<script>
+const HEIGHTS = {"2A-01-01-01":84,"2A-01-01-02":84,"2A-01-02-01":55,"2A-01-02-02":55,"2A-01-03-01":43,"2A-01-03-02":43,"2A-01-04-01":23,"2A-01-04-02":23,"2A-02-01-01":84,"2A-02-01-02":84,"2A-02-02-01":55,"2A-02-02-02":55,"2A-02-03-01":43,"2A-02-03-02":43,"2A-02-04-01":23,"2A-02-04-02":23,"2A-03-01-01":84,"2A-03-01-02":84,"2A-03-02-01":55,"2A-03-02-02":55,"2A-03-03-01":43,"2A-03-03-02":43,"2A-03-04-01":23,"2A-03-04-02":23,"2A-04-01-01":84,"2A-04-01-02":84,"2A-04-02-01":55,"2A-04-02-02":55,"2A-04-03-01":43,"2A-04-03-02":43,"2A-04-04-01":23,"2A-04-04-02":23,"2A-05-01-01":84,"2A-05-01-02":84,"2A-05-02-01":55,"2A-05-02-02":55,"2A-05-03-01":43,"2A-05-03-02":43,"2A-05-04-01":23,"2A-05-04-02":23,"2A-06-01-01":84,"2A-06-01-02":84,"2A-06-02-01":55,"2A-06-02-02":55,"2A-06-03-01":43,"2A-06-03-02":43,"2A-06-04-01":23,"2A-06-04-02":23,"2B-01-01-01":84,"2B-01-01-02":84,"2B-01-02-01":55,"2B-01-02-02":55,"2B-01-03-01":43,"2B-01-03-02":43,"2B-01-04-01":23,"2B-01-04-02":23,"2B-02-01-01":84,"2B-02-01-02":84,"2B-02-02-01":55,"2B-02-02-02":55,"2B-02-03-01":43,"2B-02-03-02":43,"2B-02-04-01":23,"2B-02-04-02":23,"2B-03-01-01":84,"2B-03-01-02":84,"2B-03-02-01":55,"2B-03-02-02":55,"2B-03-03-01":43,"2B-03-03-02":43,"2B-03-04-01":23,"2B-03-04-02":23,"2B-04-01-01":84,"2B-04-01-02":84,"2B-04-02-01":55,"2B-04-02-02":55,"2B-04-03-01":43,"2B-04-03-02":43,"2B-04-04-01":23,"2B-04-04-02":23,"2B-05-01-01":84,"2B-05-01-02":84,"2B-05-02-01":55,"2B-05-02-02":55,"2B-05-03-01":43,"2B-05-03-02":43,"2B-05-04-01":23,"2B-05-04-02":23,"2B-06-01-01":84,"2B-06-01-02":84,"2B-06-02-01":55,"2B-06-02-02":55,"2B-06-03-01":43,"2B-06-03-02":43,"2B-06-04-01":23,"2B-06-04-02":23,"2C-01-01-01":84,"2C-01-01-02":84,"2C-01-02-01":55,"2C-01-02-02":55,"2C-01-03-01":43,"2C-01-03-02":43,"2C-01-04-01":23,"2C-01-04-02":23,"2C-02-01-01":84,"2C-02-01-02":84,"2C-02-02-01":55,"2C-02-02-02":55,"2C-02-03-01":43,"2C-02-03-02":43,"2C-02-04-01":23,"2C-02-04-02":23,"2C-03-01-01":84,"2C-03-01-02":84,"2C-03-02-01":55,"2C-03-02-02":55,"2C-03-03-01":43,"2C-03-03-02":43,"2C-03-04-01":23,"2C-03-04-02":23,"2C-04-01-01":84,"2C-04-01-02":84,"2C-04-02-01":55,"2C-04-02-02":55,"2C-04-03-01":43,"2C-04-03-02":43,"2C-04-04-01":23,"2C-04-04-02":23,"2C-05-01-01":84,"2C-05-01-02":84,"2C-05-02-01":55,"2C-05-02-02":55,"2C-05-03-01":43,"2C-05-03-02":43,"2C-05-04-01":23,"2C-05-04-02":23,"2C-06-01-01":84,"2C-06-01-02":84,"2C-06-02-01":55,"2C-06-02-02":55,"2C-06-03-01":43,"2C-06-03-02":43,"2C-06-04-01":23,"2C-06-04-02":23,"2D-01-01-01":84,"2D-01-01-02":84,"2D-01-02-01":55,"2D-01-02-02":55,"2D-01-03-01":43,"2D-01-03-02":43,"2D-01-04-01":23,"2D-01-04-02":23,"2D-02-01-01":84,"2D-02-01-02":84,"2D-02-02-01":55,"2D-02-02-02":55,"2D-02-03-01":43,"2D-02-03-02":43,"2D-02-04-01":23,"2D-02-04-02":23,"2D-03-01-01":84,"2D-03-01-02":84,"2D-03-02-01":55,"2D-03-02-02":55,"2D-03-03-01":43,"2D-03-03-02":43,"2D-03-04-01":23,"2D-03-04-02":23,"2D-04-01-01":84,"2D-04-01-02":84,"2D-04-02-01":55,"2D-04-02-02":55,"2D-04-03-01":43,"2D-04-03-02":43,"2D-04-04-01":23,"2D-04-04-02":23,"2D-05-01-01":84,"2D-05-01-02":84,"2D-05-02-01":55,"2D-05-02-02":55,"2D-05-03-01":43,"2D-05-03-02":43,"2D-05-04-01":23,"2D-05-04-02":23,"2D-06-01-01":84,"2D-06-01-02":84,"2D-06-02-01":55,"2D-06-02-02":55,"2D-06-03-01":43,"2D-06-03-02":43,"2D-06-04-01":23,"2D-06-04-02":23,"2E-01-01-01":84,"2E-01-01-02":84,"2E-01-02-01":55,"2E-01-02-02":55,"2E-01-03-01":43,"2E-01-03-02":43,"2E-01-04-01":23,"2E-01-04-02":23,"2E-02-01-01":84,"2E-02-01-02":84,"2E-02-02-01":55,"2E-02-02-02":55,"2E-02-03-01":43,"2E-02-03-02":43,"2E-02-04-01":23,"2E-02-04-02":23,"2E-03-01-01":84,"2E-03-01-02":84,"2E-03-02-01":55,"2E-03-02-02":55,"2E-03-03-01":43,"2E-03-03-02":43,"2E-03-04-01":23,"2E-03-04-02":23,"2E-04-01-01":84,"2E-04-01-02":84,"2E-04-02-01":55,"2E-04-02-02":55,"2E-04-03-01":43,"2E-04-03-02":43,"2E-04-04-01":23,"2E-04-04-02":23,"2E-05-01-01":84,"2E-05-01-02":84,"2E-05-02-01":55,"2E-05-02-02":55,"2E-05-03-01":43,"2E-05-03-02":43,"2E-05-04-01":23,"2E-05-04-02":23,"2E-06-01-01":84,"2E-06-01-02":84,"2E-06-02-01":55,"2E-06-02-02":55,"2E-06-03-01":43,"2E-06-03-02":43,"2E-06-04-01":23,"2E-06-04-02":23,"2F-01-01-01":84,"2F-01-01-02":84,"2F-01-02-01":55,"2F-01-02-02":55,"2F-01-03-01":43,"2F-01-03-02":43,"2F-01-04-01":23,"2F-01-04-02":23,"2F-02-01-01":84,"2F-02-01-02":84,"2F-02-02-01":55,"2F-02-02-02":55,"2F-02-03-01":43,"2F-02-03-02":43,"2F-02-04-01":23,"2F-02-04-02":23,"2F-03-01-01":84,"2F-03-01-02":84,"2F-03-02-01":55,"2F-03-02-02":55,"2F-03-03-01":43,"2F-03-03-02":43,"2F-03-04-01":23,"2F-03-04-02":23,"2F-04-01-01":84,"2F-04-01-02":84,"2F-04-02-01":55,"2F-04-02-02":55,"2F-04-03-01":43,"2F-04-03-02":43,"2F-04-04-01":23,"2F-04-04-02":23,"2F-05-01-01":84,"2F-05-01-02":84,"2F-05-02-01":55,"2F-05-02-02":55,"2F-05-03-01":43,"2F-05-03-02":43,"2F-05-04-01":23,"2F-05-04-02":23,"2F-06-01-01":84,"2F-06-01-02":84,"2F-06-02-01":55,"2F-06-02-02":55,"2F-06-03-01":43,"2F-06-03-02":43,"2F-06-04-01":23,"2F-06-04-02":23,"2G-01-01-01":84,"2G-01-01-02":84,"2G-01-02-01":55,"2G-01-02-02":55,"2G-01-03-01":43,"2G-01-03-02":43,"2G-01-04-01":23,"2G-01-04-02":23,"2G-02-01-01":84,"2G-02-01-02":84,"2G-02-02-01":55,"2G-02-02-02":55,"2G-02-03-01":43,"2G-02-03-02":43,"2G-02-04-01":23,"2G-02-04-02":23,"2G-03-01-01":84,"2G-03-01-02":84,"2G-03-02-01":55,"2G-03-02-02":55,"2G-03-03-01":43,"2G-03-03-02":43,"2G-03-04-01":23,"2G-03-04-02":23,"2G-04-01-01":84,"2G-04-01-02":84,"2G-04-02-01":55,"2G-04-02-02":55,"2G-04-03-01":43,"2G-04-03-02":43,"2G-04-04-01":23,"2G-04-04-02":23,"2G-05-01-01":84,"2G-05-01-02":84,"2G-05-02-01":55,"2G-05-02-02":55,"2G-05-03-01":43,"2G-05-03-02":43,"2G-05-04-01":23,"2G-05-04-02":23,"2G-06-01-01":84,"2G-06-01-02":84,"2G-06-02-01":55,"2G-06-02-02":55,"2G-06-03-01":43,"2G-06-03-02":43,"2G-06-04-01":23,"2G-06-04-02":23,"2H-01-01-01":84,"2H-01-01-02":84,"2H-01-02-01":55,"2H-01-02-02":55,"2H-01-03-01":43,"2H-01-03-02":43,"2H-01-04-01":23,"2H-01-04-02":23,"2H-02-01-01":84,"2H-02-01-02":84,"2H-02-02-01":55,"2H-02-02-02":55,"2H-02-03-01":43,"2H-02-03-02":43,"2H-02-04-01":23,"2H-02-04-02":23,"2H-03-01-01":84,"2H-03-01-02":84,"2H-03-02-01":55,"2H-03-02-02":55,"2H-03-03-01":43,"2H-03-03-02":43,"2H-03-04-01":23,"2H-03-04-02":23,"2H-04-01-01":84,"2H-04-01-02":84,"2H-04-02-01":55,"2H-04-02-02":55,"2H-04-03-01":43,"2H-04-03-02":43,"2H-04-04-01":23,"2H-04-04-02":23,"2H-05-01-01":84,"2H-05-01-02":84,"2H-05-02-01":55,"2H-05-02-02":55,"2H-05-03-01":43,"2H-05-03-02":43,"2H-05-04-01":23,"2H-05-04-02":23,"2H-06-01-01":84,"2H-06-01-02":84,"2H-06-02-01":55,"2H-06-02-02":55,"2H-06-03-01":43,"2H-06-03-02":43,"2H-06-04-01":23,"2H-06-04-02":23,"2J-01-01-01":84,"2J-01-01-02":84,"2J-01-02-01":55,"2J-01-02-02":55,"2J-01-03-01":43,"2J-01-03-02":43,"2J-01-04-01":23,"2J-01-04-02":23,"2J-02-01-01":84,"2J-02-01-02":84,"2J-02-02-01":55,"2J-02-02-02":55,"2J-02-03-01":43,"2J-02-03-02":43,"2J-02-04-01":23,"2J-02-04-02":23,"2J-03-01-01":84,"2J-03-01-02":84,"2J-03-02-01":55,"2J-03-02-02":55,"2J-03-03-01":43,"2J-03-03-02":43,"2J-03-04-01":23,"2J-03-04-02":23,"2J-04-01-01":84,"2J-04-01-02":84,"2J-04-02-01":55,"2J-04-02-02":55,"2J-04-03-01":43,"2J-04-03-02":43,"2J-04-04-01":23,"2J-04-04-02":23,"2J-05-01-01":84,"2J-05-01-02":84,"2J-05-02-01":55,"2J-05-02-02":55,"2J-05-03-01":43,"2J-05-03-02":43,"2J-05-04-01":23,"2J-05-04-02":23,"2J-06-01-01":84,"2J-06-01-02":84,"2J-06-02-01":55,"2J-06-02-02":55,"2J-06-03-01":43,"2J-06-03-02":43,"2J-06-04-01":23,"2J-06-04-02":23,"2K-01-01-01":84,"2K-01-01-02":84,"2K-01-02-01":55,"2K-01-02-02":55,"2K-01-03-01":43,"2K-01-03-02":43,"2K-01-04-01":23,"2K-01-04-02":23,"2K-02-01-01":84,"2K-02-01-02":84,"2K-02-02-01":55,"2K-02-02-02":55,"2K-02-03-01":43,"2K-02-03-02":43,"2K-02-04-01":23,"2K-02-04-02":23,"2K-03-01-01":84,"2K-03-01-02":84,"2K-03-02-01":55,"2K-03-02-02":55,"2K-03-03-01":43,"2K-03-03-02":43,"2K-03-04-01":23,"2K-03-04-02":23,"2K-04-01-01":84,"2K-04-01-02":84,"2K-04-02-01":55,"2K-04-02-02":55,"2K-04-03-01":43,"2K-04-03-02":43,"2K-04-04-01":23,"2K-04-04-02":23,"2K-05-01-01":84,"2K-05-01-02":84,"2K-05-02-01":55,"2K-05-02-02":55,"2K-05-03-01":43,"2K-05-03-02":43,"2K-05-04-01":23,"2K-05-04-02":23,"2K-06-01-01":84,"2K-06-01-02":84,"2K-06-02-01":55,"2K-06-02-02":55,"2K-06-03-01":43,"2K-06-03-02":43,"2K-06-04-01":23,"2K-06-04-02":23,"2L-01-01-01":84,"2L-01-01-02":84,"2L-01-02-01":55,"2L-01-02-02":55,"2L-01-03-01":43,"2L-01-03-02":43,"2L-01-04-01":23,"2L-01-04-02":23,"2L-02-01-01":84,"2L-02-01-02":84,"2L-02-02-01":55,"2L-02-02-02":55,"2L-02-03-01":43,"2L-02-03-02":43,"2L-02-04-01":23,"2L-02-04-02":23,"2L-03-01-01":84,"2L-03-01-02":84,"2L-03-02-01":55,"2L-03-02-02":55,"2L-03-03-01":43,"2L-03-03-02":43,"2L-03-04-01":23,"2L-03-04-02":23,"2L-04-01-01":84,"2L-04-01-02":84,"2L-04-02-01":55,"2L-04-02-02":55,"2L-04-03-01":43,"2L-04-03-02":43,"2L-04-04-01":23,"2L-04-04-02":23,"2L-05-01-01":84,"2L-05-01-02":84,"2L-05-02-01":55,"2L-05-02-02":55,"2L-05-03-01":43,"2L-05-03-02":43,"2L-05-04-01":23,"2L-05-04-02":23,"2L-06-01-01":84,"2L-06-01-02":84,"2L-06-02-01":55,"2L-06-02-02":55,"2L-06-03-01":43,"2L-06-03-02":43,"2L-06-04-01":23,"2L-06-04-02":23,"2M-01-01-01":84,"2M-01-01-02":84,"2M-01-02-01":55,"2M-01-02-02":55,"2M-01-03-01":43,"2M-01-03-02":43,"2M-01-04-01":23,"2M-01-04-02":23,"2M-02-01-01":84,"2M-02-01-02":84,"2M-02-02-01":55,"2M-02-02-02":55,"2M-02-03-01":43,"2M-02-03-02":43,"2M-02-04-01":23,"2M-02-04-02":23,"2M-03-01-01":84,"2M-03-01-02":84,"2M-03-02-01":55,"2M-03-02-02":55,"2M-03-03-01":43,"2M-03-03-02":43,"2M-03-04-01":23,"2M-03-04-02":23,"2M-04-01-01":84,"2M-04-01-02":84,"2M-04-02-01":55,"2M-04-02-02":55,"2M-04-03-01":43,"2M-04-03-02":43,"2M-04-04-01":23,"2M-04-04-02":23,"2M-05-01-01":84,"2M-05-01-02":84,"2M-05-02-01":55,"2M-05-02-02":55,"2M-05-03-01":43,"2M-05-03-02":43,"2M-05-04-01":23,"2M-05-04-02":23,"2M-06-01-01":84,"2M-06-01-02":84,"2M-06-02-01":55,"2M-06-02-02":55,"2M-06-03-01":43,"2M-06-03-02":43,"2M-06-04-01":23,"2M-06-04-02":23,"2N-01-01-01":84,"2N-01-01-02":84,"2N-01-02-01":55,"2N-01-02-02":55,"2N-01-03-01":43,"2N-01-03-02":43,"2N-01-04-01":23,"2N-01-04-02":23,"2N-02-01-01":84,"2N-02-01-02":84,"2N-02-02-01":55,"2N-02-02-02":55,"2N-02-03-01":43,"2N-02-03-02":43,"2N-02-04-01":23,"2N-02-04-02":23,"2N-03-01-01":84,"2N-03-01-02":84,"2N-03-02-01":55,"2N-03-02-02":55,"2N-03-03-01":43,"2N-03-03-02":43,"2N-03-04-01":23,"2N-03-04-02":23,"2N-04-01-01":84,"2N-04-01-02":84,"2N-04-02-01":55,"2N-04-02-02":55,"2N-04-03-01":43,"2N-04-03-02":43,"2N-04-04-01":23,"2N-04-04-02":23,"2N-05-01-01":84,"2N-05-01-02":84,"2N-05-02-01":55,"2N-05-02-02":55,"2N-05-03-01":43,"2N-05-03-02":43,"2N-05-04-01":23,"2N-05-04-02":23,"2N-06-01-01":84,"2N-06-01-02":84,"2N-06-02-01":55,"2N-06-02-02":55,"2N-06-03-01":43,"2N-06-03-02":43,"2N-06-04-01":23,"2N-06-04-02":23,"2P-01-01-01":84,"2P-01-01-02":84,"2P-01-02-01":57,"2P-01-02-02":57,"2P-01-03-01":53,"2P-01-03-02":53,"2P-01-04-01":14,"2P-01-04-02":14,"2P-02-01-01":84,"2P-02-01-02":84,"2P-02-02-01":57,"2P-02-02-02":57,"2P-02-03-01":53,"2P-02-03-02":53,"2P-02-04-01":14,"2P-02-04-02":14,"2P-03-01-01":84,"2P-03-01-02":84,"2P-03-02-01":57,"2P-03-02-02":57,"2P-03-03-01":53,"2P-03-03-02":53,"2P-03-04-01":14,"2P-03-04-02":14,"2P-04-01-01":84,"2P-04-01-02":84,"2P-04-02-01":57,"2P-04-02-02":57,"2P-04-03-01":53,"2P-04-03-02":53,"2P-04-04-01":14,"2P-04-04-02":14,"2P-05-01-01":84,"2P-05-01-02":84,"2P-05-02-01":57,"2P-05-02-02":57,"2P-05-03-01":53,"2P-05-03-02":53,"2P-05-04-01":14,"2P-05-04-02":14,"2P-06-01-01":84,"2P-06-01-02":84,"2P-06-02-01":57,"2P-06-02-02":57,"2P-06-03-01":53,"2P-06-03-02":53,"2P-06-04-01":14,"2P-06-04-02":14,"2A-07-01-01":84,"2A-07-01-02":84,"2A-07-02-01":55,"2A-07-02-02":55,"2A-07-03-01":43,"2A-07-03-02":43,"2A-07-04-01":23,"2A-07-04-02":23,"2B-07-01-01":84,"2B-07-01-02":84,"2B-07-02-01":55,"2B-07-02-02":55,"2B-07-03-01":43,"2B-07-03-02":43,"2B-07-04-01":23,"2B-07-04-02":23,"2C-07-01-01":84,"2C-07-01-02":84,"2C-07-02-01":55,"2C-07-02-02":55,"2C-07-03-01":43,"2C-07-03-02":43,"2C-07-04-01":23,"2C-07-04-02":23,"2D-07-01-01":84,"2D-07-01-02":84,"2D-07-02-01":55,"2D-07-02-02":55,"2D-07-03-01":43,"2D-07-03-02":43,"2D-07-04-01":23,"2D-07-04-02":23,"2E-07-01-01":84,"2E-07-01-02":84,"2E-07-02-01":55,"2E-07-02-02":55,"2E-07-03-01":43,"2E-07-03-02":43,"2E-07-04-01":23,"2E-07-04-02":23,"2F-07-01-01":84,"2F-07-01-02":84,"2F-07-02-01":55,"2F-07-02-02":55,"2F-07-03-01":43,"2F-07-03-02":43,"2F-07-04-01":23,"2F-07-04-02":23,"2G-07-01-01":84,"2G-07-01-02":84,"2G-07-02-01":55,"2G-07-02-02":55,"2G-07-03-01":43,"2G-07-03-02":43,"2G-07-04-01":23,"2G-07-04-02":23,"2H-07-01-01":84,"2H-07-01-02":84,"2H-07-02-01":55,"2H-07-02-02":55,"2H-07-03-01":43,"2H-07-03-02":43,"2H-07-04-01":23,"2H-07-04-02":23,"2J-07-01-01":84,"2J-07-01-02":84,"2J-07-02-01":55,"2J-07-02-02":55,"2J-07-03-01":43,"2J-07-03-02":43,"2J-07-04-01":23,"2J-07-04-02":23,"2K-07-01-01":84,"2K-07-01-02":84,"2K-07-02-01":55,"2K-07-02-02":55,"2K-07-03-01":43,"2K-07-03-02":43,"2K-07-04-01":23,"2K-07-04-02":23,"2L-07-01-01":84,"2L-07-01-02":84,"2L-07-02-01":55,"2L-07-02-02":55,"2L-07-03-01":43,"2L-07-03-02":43,"2L-07-04-01":23,"2L-07-04-02":23,"2M-07-01-01":84,"2M-07-01-02":84,"2M-07-02-01":55,"2M-07-02-02":55,"2M-07-03-01":43,"2M-07-03-02":43,"2M-07-04-01":23,"2M-07-04-02":23,"2N-07-01-01":84,"2N-07-01-02":84,"2N-07-02-01":55,"2N-07-02-02":55,"2N-07-03-01":43,"2N-07-03-02":43,"2N-07-04-01":23,"2N-07-04-02":23,"2P-07-01-01":84,"2P-07-01-02":84,"2P-07-02-01":57,"2P-07-02-02":57,"2P-07-03-01":53,"2P-07-03-02":53,"2P-07-04-01":14,"2P-07-04-02":14,"2HZ-BULK-01-01":15,"2HZ-BULK-01-02":15,"2HZ-BULK-02-01":15,"2HZ-BULK-02-02":15,"2HZ-BULK-03-01":15,"2HZ-BULK-03-02":15,"2HZ-01-01-01":19,"2HZ-01-01-02":19,"2HZ-01-02-01":19,"2HZ-01-02-02":19,"2HZ-02-01-01":19,"2HZ-02-01-02":19,"2HZ-02-02-01":19,"2HZ-02-02-02":19,"2FL-01-01-01":68,"2FL-01-01-02":68,"2FL-01-02-01":68,"2FL-01-02-02":68,"2FL-02-01-01":68,"2FL-02-01-02":68,"2FL-02-02-01":68,"2FL-02-02-02":68,"2FL-03-01-01":68,"2FL-03-01-02":68,"2FL-03-02-01":68,"2FL-03-02-02":68,"2FL-04-01-01":68,"2FL-04-01-02":68,"2FL-04-02-01":68,"2FL-04-02-02":68,"2FL-05-01-01":68,"2FL-05-01-02":68,"2FL-05-02-01":68,"2FL-05-02-02":68,"2FL-06-01-01":68,"2FL-06-01-02":68,"2FL-06-02-01":68,"2FL-06-02-02":68,"2FL-07-01-01":68,"2FL-07-01-02":68,"2FL-07-02-01":68,"2FL-07-02-02":68,"2FL-08-01-01":68,"2FL-08-01-02":68,"2FL-08-02-01":68,"2FL-08-02-02":68,"2FL-09-01-01":68,"2FL-09-01-02":68,"2FL-09-02-01":68,"2FL-09-02-02":68,"2FL-10-01-01":68,"2FL-10-01-02":68,"2FL-10-02-01":68,"2FL-10-02-02":68};
+
+const EXCLUDED = new Set([
+  '2DAMAGES','2DMSF-01-01-01','2DOCKDOOR1','2DOCKDOOR10','2DOCKDOOR11',
+  '2DOCKDOOR2','2DOCKDOOR3','2DOCKDOOR4','2DOCKDOOR5','2DOCKDOOR6',
+  '2DOCKDOOR7','2DOCKDOOR8','2DOCKDOOR9','2DONATIONS','2MISSING',
+  '2OUTBOUND','2PREP','2PROMOTION','2RTS','2RTV - ILLY','2SWAPSHOP','GENERAL'
+]);
+
+let locations = [];
+let maxByHeight = {};
+let maxOverrides = {};
+let currentTab = 'locations';
+let searchQ = '';
+let filterStatus = 'all';
+let page = 1;
+const PAGE_SIZE = 100;
+
+function loadFromStorage() {
+  try {
+    const d = localStorage.getItem('neato_lv1_data');
+    if (d) locations = JSON.parse(d);
+    const m = localStorage.getItem('neato_lv1_maxByHeight');
+    if (m) maxByHeight = JSON.parse(m);
+    const o = localStorage.getItem('neato_lv1_overrides');
+    if (o) maxOverrides = JSON.parse(o);
+  } catch(e) {}
+}
+
+function saveToStorage() {
+  try {
+    localStorage.setItem('neato_lv1_data', JSON.stringify(locations));
+    localStorage.setItem('neato_lv1_maxByHeight', JSON.stringify(maxByHeight));
+    localStorage.setItem('neato_lv1_overrides', JSON.stringify(maxOverrides));
+  } catch(e) {}
+}
+
+function isExcluded(loc) {
+  if (EXCLUDED.has(loc)) return true;
+  if (loc.startsWith('OB - ') || loc.startsWith('OB-') || loc.toUpperCase().startsWith('OB ')) return true;
+  return false;
+}
+
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (!lines.length) return [];
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,'').toLowerCase());
+  const locIdx = headers.findIndex(h => h === 'location' || h === 'loc');
+  const qtyIdx = headers.findIndex(h => h === 'quantity' || h === 'qty');
+  const resIdx = headers.findIndex(h => h === 'reserved');
+  const bsIdx = headers.findIndex(h => h === 'backstock');
+  if (locIdx === -1) { alert('CSV must have a Location column'); return []; }
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g,''));
+    const loc = cols[locIdx] || '';
+    if (!loc || isExcluded(loc)) continue;
+    const qty = qtyIdx >= 0 ? (parseInt(cols[qtyIdx]) || 0) : 0;
+    const reserved = resIdx >= 0 ? cols[resIdx] : '';
+    const backstock = bsIdx >= 0 ? cols[bsIdx] : '';
+    rows.push({
+      location: loc,
+      quantity: qty,
+      filled: qty > 0,
+      reserved: reserved.toLowerCase() === 'yes' || reserved === '1' || reserved.toLowerCase() === 'true',
+      backstock: backstock.toLowerCase() === 'yes' || backstock === '1' || backstock.toLowerCase() === 'true',
+      height: HEIGHTS[loc] || null
+    });
+  }
+  return rows;
+}
+
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    locations = parseCSV(ev.target.result);
+    saveToStorage();
+    setStatus('Loaded ' + locations.length + ' locations from ' + file.name + ' · Saved at ' + new Date().toLocaleTimeString());
+    render();
+  };
+  reader.readAsText(file);
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.name.endsWith('.csv')) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      locations = parseCSV(ev.target.result);
+      saveToStorage();
+      setStatus('Loaded ' + locations.length + ' locations from ' + file.name + ' · Saved at ' + new Date().toLocaleTimeString());
+      render();
+    };
+    reader.readAsText(file);
+  }
+}
+
+function setStatus(msg) { document.getElementById('statusBar').textContent = msg; }
+
+function getMax(loc, height) {
+  if (maxOverrides[loc] !== undefined) return maxOverrides[loc];
+  if (height && maxByHeight[height] !== undefined) return maxByHeight[height];
+  return null;
+}
+
+function getCapPct(row) {
+  const mx = getMax(row.location, row.height);
+  if (mx === null || mx === 0) return null;
+  return Math.round((row.quantity / mx) * 100);
+}
+
+function barClass(pct) {
+  if (pct === null) return 'bar-gray';
+  if (pct >= 100) return 'bar-red';
+  if (pct >= 75) return 'bar-amber';
+  return 'bar-green';
+}
+
+function render() {
+  if (!locations.length) {
+    document.getElementById('emptyState').style.display = '';
+    document.getElementById('locationsTab').style.display = 'none';
+    document.getElementById('aisleTab').style.display = 'none';
+    document.getElementById('chartTab').style.display = 'none';
+    document.getElementById('capacityTab').style.display = 'none';
+    document.getElementById('kpiRow').style.display = 'none';
+    document.getElementById('tabs').style.display = 'none';
+    document.getElementById('exportBtn').style.display = 'none';
+    return;
+  }
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('kpiRow').style.display = 'flex';
+  document.getElementById('tabs').style.display = 'flex';
+  document.getElementById('exportBtn').style.display = '';
+
+  const filled = locations.filter(r => r.filled).length;
+  const empty = locations.length - filled;
+  const matched = locations.filter(r => r.height !== null).length;
+  const capsSet = locations.filter(r => getMax(r.location, r.height) !== null && r.filled);
+  const avgCap = capsSet.length ? Math.round(capsSet.reduce((s,r) => s + Math.min(getCapPct(r) || 0, 200), 0) / capsSet.length) : null;
+
+  document.getElementById('kpiTotal').textContent = locations.length;
+  document.getElementById('kpiFilled').textContent = filled;
+  document.getElementById('kpiFilledPct').textContent = Math.round(filled/locations.length*100) + '% of total';
+  document.getElementById('kpiEmpty').textContent = empty;
+  document.getElementById('kpiEmptyPct').textContent = Math.round(empty/locations.length*100) + '% of total';
+  document.getElementById('kpiHeights').textContent = matched;
+  document.getElementById('kpiAvgCap').textContent = avgCap !== null ? avgCap + '%' : '—';
+
+  showTab(currentTab, true);
+}
+
+function showTab(tab, force) {
+  if (!force && !locations.length) return;
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab')[['locations','aisle','chart','capacity'].indexOf(tab)].classList.add('active');
+  ['locationsTab','aisleTab','chartTab','capacityTab'].forEach(id => document.getElementById(id).style.display = 'none');
+  if (tab === 'locations') renderLocations();
+  else if (tab === 'aisle') renderAisle();
+  else if (tab === 'chart') renderChart();
+  else if (tab === 'capacity') renderCapacity();
+}
+
+function filteredLocations() {
+  return locations.filter(r => {
+    if (filterStatus === 'filled' && !r.filled) return false;
+    if (filterStatus === 'empty' && r.filled) return false;
+    if (searchQ && !r.location.toLowerCase().includes(searchQ.toLowerCase())) return false;
+    return true;
+  });
+}
+
+function renderLocations() {
+  const el = document.getElementById('locationsTab');
+  el.style.display = '';
+  const fl = filteredLocations();
+  const total = fl.length;
+  const pages = Math.ceil(total / PAGE_SIZE);
+  if (page > pages) page = 1;
+  const slice = fl.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE);
+
+  let html = `<div class="search-row">
+    <input type="text" placeholder="Search location..." value="${searchQ}" oninput="searchQ=this.value;page=1;renderLocations()" style="width:220px">
+    <select onchange="filterStatus=this.value;page=1;renderLocations()">
+      <option value="all"${filterStatus==='all'?' selected':''}>All</option>
+      <option value="filled"${filterStatus==='filled'?' selected':''}>Filled</option>
+      <option value="empty"${filterStatus==='empty'?' selected':''}>Empty</option>
+    </select>
+    <span style="font-size:12px;color:#666">${total} locations</span>
+  </div>
+  <div class="table-wrap">
+  <table>
+    <thead><tr>
+      <th>Location</th><th>Status</th><th>Qty</th><th>Reserved</th><th>Backstock</th><th>Height</th><th>% Capacity</th>
+    </tr></thead><tbody>`;
+
+  slice.forEach(r => {
+    const cap = getCapPct(r);
+    const bc = barClass(cap);
+    const pctStr = cap !== null ? cap + '%' : '—';
+    html += `<tr>
+      <td style="font-family:monospace;font-size:12px">${r.location}</td>
+      <td><span class="badge ${r.filled?'badge-filled':'badge-empty'}">${r.filled?'Filled':'Empty'}</span></td>
+      <td>${r.quantity}</td>
+      <td><span class="badge ${r.reserved?'badge-yes':'badge-no'}">${r.reserved?'Yes':'No'}</span></td>
+      <td><span class="badge ${r.backstock?'badge-yes':'badge-no'}">${r.backstock?'Yes':'No'}</span></td>
+      <td>${r.height !== null ? r.height + '"' : '<span style="color:#555">—</span>'}</td>
+      <td>
+        ${cap !== null ? `<div class="bar-wrap"><div class="bar-fill ${bc}" style="width:${Math.min(cap,100)}%"></div></div> ${pctStr}` : '<span style="color:#555">—</span>'}
+      </td>
+    </tr>`;
+  });
+
+  html += '</tbody></table></div>';
+
+  // Pagination
+  if (pages > 1) {
+    html += '<div class="pagination">';
+    html += `<span class="page-info">Page ${page} of ${pages}</span>`;
+    for (let p2 = 1; p2 <= pages; p2++) {
+      if (p2 === 1 || p2 === pages || Math.abs(p2 - page) <= 2) {
+        html += `<button class="page-btn ${p2===page?'active':''}" onclick="page=${p2};renderLocations()">${p2}</button>`;
+      } else if (Math.abs(p2 - page) === 3) {
+        html += '<span style="color:#555;padding:0 4px">…</span>';
+      }
+    }
+    html += '</div>';
+  }
+  el.innerHTML = html;
+}
+function renderAisle() {
+  const el = document.getElementById('aisleTab');
+  el.style.display = '';
+  const byAisle = {};
+  locations.forEach(r => {
+    const parts = r.location.split('-');
+    const aisle = parts.length >= 2 ? parts[0] + '-' + parts[1] : parts[0];
+    if (!byAisle[aisle]) byAisle[aisle] = [];
+    byAisle[aisle].push(r);
+  });
+  const aisles = Object.keys(byAisle).sort();
+  let html = '';
+  aisles.forEach(aisle => {
+    const rows = byAisle[aisle];
+    const filled = rows.filter(r => r.filled).length;
+    const pct = Math.round(filled / rows.length * 100);
+    const capsRows = rows.filter(r => getMax(r.location, r.height) !== null && r.filled);
+    const avgCap = capsRows.length ? Math.round(capsRows.reduce((s,r) => s + Math.min(getCapPct(r)||0,200), 0) / capsRows.length) : null;
+    html += `<div class="aisle-group">
+      <div class="aisle-header">
+        <span class="aisle-title">Aisle ${aisle}</span>
+        <span class="aisle-stats">${filled}/${rows.length} filled (${pct}%)${avgCap !== null ? ' · ' + avgCap + '% avg capacity' : ''}</span>
+      </div>
+      <div style="padding:8px 14px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">`;
+    rows.sort((a,b) => a.location.localeCompare(b.location)).forEach(r => {
+      const cap = getCapPct(r);
+      const bc = r.filled ? (cap !== null ? barClass(cap) : 'bar-green') : '';
+      const color = r.filled ? (cap !== null ? (cap>=100?'#f87171':cap>=75?'#fbbf24':'#34d399') : '#34d399') : '#333';
+      html += `<div title="${r.location}: qty=${r.quantity}${cap!==null?' cap='+cap+'%':''}" style="width:10px;height:10px;border-radius:2px;background:${color};cursor:default"></div>`;
+    });
+    html += '</div></div></div>';
+  });
+  el.innerHTML = html || '<div class="empty-state"><p>No data</p></div>';
+}
+
+function renderChart() {
+  const el = document.getElementById('chartTab');
+  el.style.display = '';
+  const byAisle = {};
+  locations.forEach(r => {
+    const parts = r.location.split('-');
+    const aisle = parts.length >= 2 ? parts[0] + '-' + parts[1] : parts[0];
+    if (!byAisle[aisle]) byAisle[aisle] = {total:0, filled:0};
+    byAisle[aisle].total++;
+    if (r.filled) byAisle[aisle].filled++;
+  });
+  const aisles = Object.keys(byAisle).sort();
+  let html = '<div style="margin-bottom:16px;font-size:13px;color:#888">Fill % by aisle (qty > 0)</div><div class="chart-wrap">';
+  aisles.forEach(aisle => {
+    const {total, filled} = byAisle[aisle];
+    const pct = Math.round(filled/total*100);
+    const color = pct >= 80 ? '#f87171' : pct >= 60 ? '#fbbf24' : '#34d399';
+    html += `<div class="chart-bar-row">
+      <div class="chart-label">${aisle}</div>
+      <div class="chart-bar-outer">
+        <div class="chart-bar-inner" style="width:${pct}%;background:${color}"></div>
+        <div class="chart-pct">${pct}%</div>
+      </div>
+      <div class="chart-val">${filled}/${total}</div>
+    </div>`;
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderCapacity() {
+  const el = document.getElementById('capacityTab');
+  el.style.display = '';
+  const heights = [...new Set(locations.map(r => r.height).filter(h => h !== null))].sort((a,b) => b-a);
+  
+  let html = '<div class="capacity-section"><h3>By Height Tier (bulk edit)</h3>';
+  heights.forEach(h => {
+    const count = locations.filter(r => r.height === h).length;
+    const val = maxByHeight[h] !== undefined ? maxByHeight[h] : '';
+    html += `<div class="height-row">
+      <div class="height-label">${h}" locations</div>
+      <div class="height-count">${count} locations</div>
+      <input type="number" class="height-input ${val!==''?'has-value':''}" placeholder="max units" value="${val}"
+        onchange="maxByHeight[${h}]=this.value?parseInt(this.value):undefined;if(!this.value)delete maxByHeight[${h}];this.className='height-input '+(this.value?'has-value':'');saveToStorage();render()">
+    </div>`;
+  });
+  html += '</div>';
+
+  html += '<div class="capacity-section"><h3>Per Location Override</h3>';
+  html += `<div class="override-row">
+    <input type="text" id="overrideLoc" placeholder="Location (e.g. 2A-01-01-01)" oninput="filterOverrides(this.value)">
+    <input type="number" id="overrideVal" placeholder="Max units">
+    <button class="btn btn-primary" onclick="setOverride()">Set</button>
+  </div>
+  <div id="overrideList"></div>`;
+  html += '</div>';
+  el.innerHTML = html;
+  renderOverrideList('');
+}
+
+function filterOverrides(q) { renderOverrideList(q); }
+
+function renderOverrideList(q) {
+  const el = document.getElementById('overrideList');
+  if (!el) return;
+  const entries = Object.entries(maxOverrides).filter(([loc]) => !q || loc.toLowerCase().includes(q.toLowerCase()));
+  if (!entries.length) { el.innerHTML = '<div style="color:#555;font-size:13px;padding:8px 0">No overrides set yet</div>'; return; }
+  let html = '<table class="override-table"><thead><tr><th>Location</th><th>Max Units</th><th></th></tr></thead><tbody>';
+  entries.forEach(([loc, val]) => {
+    html += `<tr><td style="font-family:monospace">${loc}</td><td>${val}</td><td><button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="deleteOverride('${loc}')">Remove</button></td></tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function setOverride() {
+  const loc = document.getElementById('overrideLoc').value.trim();
+  const val = parseInt(document.getElementById('overrideVal').value);
+  if (!loc || isNaN(val)) { alert('Enter a valid location and max units'); return; }
+  maxOverrides[loc] = val;
+  saveToStorage();
+  render();
+  document.getElementById('overrideLoc').value = '';
+  document.getElementById('overrideVal').value = '';
+  renderOverrideList('');
+}
+
+function deleteOverride(loc) {
+  delete maxOverrides[loc];
+  saveToStorage();
+  render();
+  renderOverrideList('');
+}
+
+function exportCSV() {
+  const headers = ['Location','Quantity','Status','Reserved','Backstock','Height','Max Units','% Capacity'];
+  const rows = locations.map(r => {
+    const cap = getCapPct(r);
+    const mx = getMax(r.location, r.height);
+    return [r.location, r.quantity, r.filled?'Filled':'Empty', r.reserved?'Yes':'No', r.backstock?'Yes':'No', r.height||'', mx||'', cap!==null?cap+'%':''].join(',');
+  });
+  const csv = [headers.join(','), ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv,' + encodeURIComponent(csv);
+  a.download = 'neato-lv1-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+// Init
+loadFromStorage();
+if (locations.length) {
+  setStatus('Loaded ' + locations.length + ' locations from storage · Last saved: check uploads');
+  render();
+}
+</script>
+</body>
+</html>
