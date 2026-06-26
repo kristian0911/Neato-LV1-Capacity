@@ -695,16 +695,17 @@ if (locations.length) {
   window.renderAdmin = function(){
     var el = document.getElementById('adminTab');
     if(!el) return;
+    el.style.display = '';
     var q = (adminSearch||'').toLowerCase();
     var list = locations.filter(function(r){ return !q || String(r.location).toLowerCase().indexOf(q) !== -1; });
-    var shown = list.slice(0, 300);
+    var shown = list.slice(0, 150);
     var heightOptions = Object.keys(maxByHeight).map(function(x){return parseInt(x,10);}).sort(function(a,b){return a-b;});
 
     var html = '';
     html += '<div style="margin-bottom:14px;color:#888;font-size:13px;">Adjust the rack height for any location. Changes save automatically and sync to the cloud. The max-capacity for a height comes from the Max Capacity tab.</div>';
     html += '<div class="search-row" style="margin-bottom:12px;">';
     html += '<input type="text" placeholder="Search location..." value="' + (adminSearch||'').replace(/"/g,'&quot;') + '" oninput="adminOnSearch(this.value)">';
-    html += '<span style="color:#888;font-size:13px;align-self:center;">' + list.length + ' locations' + (list.length>300 ? ' (showing first 300)' : '') + '</span>';
+    html += '<span style="color:#888;font-size:13px;align-self:center;">' + list.length + ' locations' + (list.length>150 ? ' (showing first 150 — search to narrow)' : '') + '</span>';
     html += '</div>';
     html += '<div class="table-wrap"><table><thead><tr>';
     html += '<th>Location</th><th>Current Height</th><th>Set Height (inches)</th>';
