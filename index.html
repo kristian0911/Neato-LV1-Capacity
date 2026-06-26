@@ -401,19 +401,19 @@ function renderAisle() {
   const byAisle = {};
   locations.forEach(r => {
     const parts = r.location.split('-');
-    const aisle = parts.length >= 2 ? parts[0] + '-' + parts[1] : parts[0];
+    const aisle = parts[0];
     if (!byAisle[aisle]) byAisle[aisle] = [];
     byAisle[aisle].push(r);
   });
   const aisles = Object.keys(byAisle).sort();
-  let html = '';
+  let html = '<div style="margin:0 0 12px;"><input id="aisleSearch" type="text" placeholder="Search aisle (e.g. 2A)…" oninput="filterAisles(this.value)" style="width:240px;padding:8px 10px;background:#1a1a1a;border:1px solid #333;border-radius:6px;color:#eee;font-size:14px;"> <span id="aisleCount" style="color:#777;font-size:13px;margin-left:8px;">' + aisles.length + ' aisles</span></div>';
   aisles.forEach(aisle => {
     const rows = byAisle[aisle];
     const filled = rows.filter(r => r.filled).length;
     const pct = Math.round(filled / rows.length * 100);
     const capsRows = rows.filter(r => getMax(r.location, r.height) !== null && r.filled);
     const avgCap = capsRows.length ? Math.round(capsRows.reduce((s,r) => s + Math.min(getCapPct(r)||0,200), 0) / capsRows.length) : null;
-    html += `<div class="aisle-group">
+    html += `<div class="aisle-group" data-aisle="${aisle}">
       <div class="aisle-header">
         <span class="aisle-title">Aisle ${aisle}</span>
         <span class="aisle-stats">${filled}/${rows.length} filled (${pct}%)${avgCap !== null ? ' · ' + avgCap + '% avg capacity' : ''}</span>
@@ -430,6 +430,20 @@ function renderAisle() {
   });
   el.innerHTML = html || '<div class="empty-state"><p>No data</p></div>';
 }
+function filterAisles(q){
+  q = (q||'').trim().toLowerCase();
+  const groups = document.querySelectorAll('#aisleTab .aisle-group');
+  let shown = 0;
+  groups.forEach(g => {
+    const a = (g.getAttribute('data-aisle')||'').toLowerCase();
+    const match = !q || a.startsWith(q);
+    g.style.display = match ? '' : 'none';
+    if (match) shown++;
+  });
+  const c = document.getElementById('aisleCount');
+  if (c) c.textContent = shown + (q ? ' of ' + groups.length : '') + ' aisles';
+}
+
 
 function renderChart() {
   const el = document.getElementById('chartTab');
