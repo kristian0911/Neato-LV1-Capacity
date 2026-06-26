@@ -553,6 +553,37 @@ if (locations.length) {
   var sb = null;
   try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e) { console.warn('Supabase init failed', e); }
 
+  function ensureIndicator(){
+    var el = document.getElementById('sync-indicator');
+    if(el) return el;
+    var exportBtn = null;
+    var btns = document.querySelectorAll('button');
+    for(var i=0;i<btns.length;i++){ if(/export/i.test(btns[i].textContent)){ exportBtn = btns[i]; break; } }
+    if(!exportBtn) return null;
+    el = document.createElement('span');
+    el.id = 'sync-indicator';
+    el.style.cssText = 'font-size:12px;color:#888;margin-right:12px;white-space:nowrap;align-self:center;';
+    el.textContent = 'Not synced yet';
+    exportBtn.parentElement.insertBefore(el, exportBtn);
+    return el;
+  }
+  function markSynced(){
+    var el = ensureIndicator();
+    if(!el) return;
+    var now = new Date();
+    var hh = now.getHours(), mm = now.getMinutes();
+    var ampm = hh >= 12 ? 'PM' : 'AM';
+    var h12 = hh % 12; if(h12 === 0) h12 = 12;
+    var mmStr = mm < 10 ? '0'+mm : ''+mm;
+    el.textContent = 'Last synced ' + h12 + ':' + mmStr + ' ' + ampm;
+    el.style.color = '#34d399';
+  }
+  window.__markSynced = markSynced;
+  // create the indicator as soon as the header exists
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', ensureIndicator);
+  } else { ensureIndicator(); }
+
   var saveTimer = null;
   window.cloudSave = function(){
     if(!sb) return;
@@ -574,7 +605,7 @@ if (locations.length) {
       };
     });
     sb.from('locations').upsert(rows, { onConflict: 'location' }).then(function(res){
-      if(res.error) console.warn('cloud locations save error', res.error);
+      if(res.error) { console.warn('cloud locations save error', res.error); } else { try { markSynced(); } catch(e){} }
     });
     var settingsRows = [
       { key: 'maxByHeight', value: (typeof maxByHeight!=='undefined'? maxByHeight : {}) },
@@ -619,6 +650,7 @@ if (locations.length) {
       try { localStorage.setItem('neato_lv1_maxByHeight', JSON.stringify(maxByHeight)); } catch(e){}
       try { localStorage.setItem('neato_lv1_overrides', JSON.stringify(maxOverrides)); } catch(e){}
       try { if(typeof render === 'function') render(); } catch(e){}
+      try { markSynced(); } catch(e){}
       try {
         if(typeof setStatus === 'function' && cloudLocs.length>0){
           setStatus('Synced ' + locations.length + ' locations from cloud');
