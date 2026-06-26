@@ -88,21 +88,15 @@ input[type=file]{display:none}
 </head>
 <body>
 <div class="header">
-    <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">
-      <div style="display:flex;flex-direction:row;align-items:center;gap:10px;">
-        <img src="/neato-mark.png" alt="Neato Mark" style="height:48px;width:48px;object-fit:contain;" />
-        <img src="/neato-wordmark.png" alt="Neato" style="height:32px;width:auto;object-fit:contain;" />
-      </div>
-      <div style="display:flex;flex-direction:row;align-items:center;gap:12px;">
-        <span class="header-icon">📍</span>
-        <h1>Neato LV1 — Capacity Tracker</h1>
+  <img src="/neato-logo.png" alt="Neato" style="height:40px;width:auto;object-fit:contain;" />
+  <span class="header-icon">📍</span>
+  <h1>Neato LV1 — Capacity Tracker</h1>
   <div style="margin-left:auto;display:flex;gap:8px">
-    <button class="btn btn-secondary" id="exportBtn" onclick="exportCSV()" style="display:none">⬇ Export</button>
+    <button class="btn btn-secondary" id="exportBtn" onclick="exportCSV()">⬇ Export</button>
     <button class="btn btn-primary" onclick="document.getElementById('csvInput').click()">⬆ Upload CSV</button>
     <input type="file" id="csvInput" accept=".csv" onchange="handleFile(event)">
   </div>
 </div>
-
 <div class="controls">
   <div id="statusBar" class="status-bar">No data loaded — upload a CSV to get started</div>
 </div>
