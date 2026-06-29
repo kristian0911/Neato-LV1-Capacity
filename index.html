@@ -174,6 +174,7 @@ let currentTab = 'locations';
 let searchQ = '';
 let filterStatus = 'all';
 let page = 1;
+    let heightFilter = 'all';
 const PAGE_SIZE = 100;
 
 function loadFromStorage() {
@@ -333,7 +334,8 @@ function filteredLocations() {
     if (filterStatus === 'filled' && !r.filled) return false;
     if (filterStatus === 'empty' && r.filled) return false;
     if (searchQ && !r.location.toLowerCase().includes(searchQ.toLowerCase())) return false;
-    return true;
+    if (heightFilter !== 'all' && String(r.height) !== heightFilter) return false;
+        return true;
   });
 }
 
@@ -353,6 +355,7 @@ function renderLocations() {
       <option value="filled"${filterStatus==='filled'?' selected':''}>Filled</option>
       <option value="empty"${filterStatus==='empty'?' selected':''}>Empty</option>
     </select>
+    <select onchange="heightFilter=this.value;page=1;renderLocations()" style="width:auto"><option value="all">All heights</option><option value="14">14&quot;</option><option value="15">15&quot;</option><option value="19">19&quot;</option><option value="23">23&quot;</option><option value="43">43&quot;</option><option value="53">53&quot;</option><option value="55">55&quot;</option><option value="57">57&quot;</option><option value="68">68&quot;</option><option value="84">84&quot;</option></select>
     <span style="font-size:12px;color:#666">${total} locations</span>
   </div>
   <div class="table-wrap">
