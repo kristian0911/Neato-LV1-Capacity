@@ -107,7 +107,7 @@ input[type=file]{display:none}
     <div class="kpi-value" id="kpiTotal">0</div>
     <div class="kpi-sub">active rack locations</div>
   </div>
-  <div class="kpi green">
+  <div class="kpi"><div class="kpi-label">Empty Pallets 2A-2H</div><div class="kpi-value" id="kpiEmpty2A2H">0</div><div class="kpi-sub">empty locations in aisles 2A-2H</div></div>
     <div class="kpi-label">Filled</div>
     <div class="kpi-value" id="kpiFilled">0</div>
     <div class="kpi-sub" id="kpiFilledPct">—</div>
@@ -305,7 +305,7 @@ function render() {
   const capsSet = locations.filter(r => getMax(r.location, r.height) !== null && r.filled);
   const avgCap = capsSet.length ? Math.round(capsSet.reduce((s,r) => s + Math.min(getCapPct(r) || 0, 200), 0) / capsSet.length) : null;
 
-  document.getElementById('kpiTotal').textContent = locations.length;
+  document.getElementById('kpiTotal').textContent = locations.length;  document.getElementById('kpiEmpty2A2H').textContent = locations.filter(function(l){ var a = l.location.split('-')[0]; return a >= '2A' && a <= '2H' && !l.filled; }).length;
   document.getElementById('kpiFilled').textContent = filled;
   document.getElementById('kpiFilledPct').textContent = Math.round(filled/locations.length*100) + '% of total';
   document.getElementById('kpiEmpty').textContent = empty;
